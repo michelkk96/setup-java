@@ -26,8 +26,11 @@ export function toGpgPath(p: string): string {
     .replace(/^([A-Za-z]):\//, (_, drive) => `/${drive.toLowerCase()}/`);
 }
 
-function createGpgHome(prefix: string): string {
-  const gpgHome = fs.mkdtempSync(path.join(util.getTempDir(), prefix));
+function createGpgHome(
+  prefix: string,
+  tempDir: string = util.getTempDir()
+): string {
+  const gpgHome = fs.mkdtempSync(path.join(tempDir, prefix));
   if (process.platform !== 'win32') {
     fs.chmodSync(gpgHome, 0o700);
   }
@@ -107,7 +110,9 @@ export async function verifyPackageSignature(
   const signaturePath = await tc.downloadTool(signatureUrl);
   let gpgHome: string;
   try {
-    gpgHome = createGpgHome(VERIFY_GPG_HOME_PREFIX);
+    // Both RUNNER_TEMP and TMPDIR can exceed macOS's 104-byte agent socket limit.
+    const tempDir = process.platform === 'darwin' ? '/tmp' : util.getTempDir();
+    gpgHome = createGpgHome(VERIFY_GPG_HOME_PREFIX, tempDir);
   } catch (error) {
     try {
       await io.rmRF(signaturePath);

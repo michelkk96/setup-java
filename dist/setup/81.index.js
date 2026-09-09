@@ -302,8 +302,8 @@ function toGpgPath(p) {
         .replace(/\\/g, '/')
         .replace(/^([A-Za-z]):\//, (_, drive) => `/${drive.toLowerCase()}/`);
 }
-function createGpgHome(prefix) {
-    const gpgHome = fs__WEBPACK_IMPORTED_MODULE_0__.mkdtempSync(path__WEBPACK_IMPORTED_MODULE_1__.join(_util_js__WEBPACK_IMPORTED_MODULE_6__/* .getTempDir */ .G4(), prefix));
+function createGpgHome(prefix, tempDir = _util_js__WEBPACK_IMPORTED_MODULE_6__/* .getTempDir */ .G4()) {
+    const gpgHome = fs__WEBPACK_IMPORTED_MODULE_0__.mkdtempSync(path__WEBPACK_IMPORTED_MODULE_1__.join(tempDir, prefix));
     if (process.platform !== 'win32') {
         fs__WEBPACK_IMPORTED_MODULE_0__.chmodSync(gpgHome, 0o700);
     }
@@ -362,7 +362,9 @@ async function verifyPackageSignature(archivePath, signatureUrl, publicKeyConten
     const signaturePath = await _actions_tool_cache__WEBPACK_IMPORTED_MODULE_5__/* .downloadTool */ .bq(signatureUrl);
     let gpgHome;
     try {
-        gpgHome = createGpgHome(VERIFY_GPG_HOME_PREFIX);
+        // Both RUNNER_TEMP and TMPDIR can exceed macOS's 104-byte agent socket limit.
+        const tempDir = process.platform === 'darwin' ? '/tmp' : _util_js__WEBPACK_IMPORTED_MODULE_6__/* .getTempDir */ .G4();
+        gpgHome = createGpgHome(VERIFY_GPG_HOME_PREFIX, tempDir);
     }
     catch (error) {
         try {
